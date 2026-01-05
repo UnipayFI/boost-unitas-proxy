@@ -1,4 +1,4 @@
-import { getAddress, parseEther, ZeroAddress } from "ethers";
+import { getAddress, ZeroAddress } from "ethers";
 
 export type BoosterUnitasProxyConfig = {
   admin: string;
