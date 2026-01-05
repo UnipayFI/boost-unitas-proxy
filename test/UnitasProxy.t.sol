@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 /* solhint-disable func-name-mixedcase  */
 
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Upgrades, Options } from "@openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import "./UnitasMintingV2.utils.sol";
@@ -19,13 +20,18 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     super.setUp();
 
     staked = new StakedUSDuV2(IERC20(address(usduToken)), owner, owner);
+
+    Options memory opts;
+    opts.unsafeSkipAllChecks = true;
+
     address deployed = Upgrades.deployTransparentProxy(
       "UnitasProxy.sol",
       owner,
       abi.encodeCall(
         UnitasProxy.initialize,
         (owner, owner, address(usduToken), address(UnitasMintingContract), address(staked))
-      )
+      ),
+      opts
     );
     proxy = UnitasProxy(payable(deployed));
 
@@ -398,13 +404,17 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
   function test_flashWithdraw_revert_whenNoStakedSupply() public {
     StakedUSDuV2 emptyStaked = new StakedUSDuV2(IERC20(address(usduToken)), owner, owner);
+    Options memory opts;
+    opts.unsafeSkipAllChecks = true;
+
     address deployed = Upgrades.deployTransparentProxy(
       "UnitasProxy.sol",
       owner,
       abi.encodeCall(
         UnitasProxy.initialize,
         (owner, owner, address(usduToken), address(UnitasMintingContract), address(emptyStaked))
-      )
+      ),
+      opts
     );
     UnitasProxy emptyProxy = UnitasProxy(payable(deployed));
 
@@ -446,9 +456,12 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
   }
 
   function test_constructor_revert_whenMultiSigWalletZero() public {
+    UnitasProxy impl = new UnitasProxy();
+
     vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
-    Upgrades.deployTransparentProxy(
-      "UnitasProxy.sol",
+
+    new TransparentUpgradeableProxy(
+      address(impl),
       owner,
       abi.encodeCall(
         UnitasProxy.initialize,
