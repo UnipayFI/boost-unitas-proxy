@@ -2,11 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "./utils/SingleAdminAccessControl.sol";
 import "./interfaces/IERC4626Minimal.sol";
@@ -15,7 +17,13 @@ import "./interfaces/IUSDu.sol";
 import "./interfaces/IStakedUSDu.sol";
 import "./interfaces/IUnitasProxy.sol";
 
-contract UnitasProxy is IUnitasProxy, IERC1271, SingleAdminAccessControl, ReentrancyGuard, Pausable {
+contract UnitasProxy is
+  IUnitasProxy,
+  IERC1271,
+  ReentrancyGuard,
+  AccessControlUpgradeable,
+  PausableUpgradeable
+{
   using SafeERC20 for IERC20;
 
   bytes32 public constant MINT_CALLER_ROLE = keccak256("MINT_CALLER_ROLE");
@@ -26,21 +34,21 @@ contract UnitasProxy is IUnitasProxy, IERC1271, SingleAdminAccessControl, Reentr
   bytes4 private constant EIP1271_MAGICVALUE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
   bytes4 private constant EIP1271_INVALID_SIGNATURE = 0xffffffff;
 
-  uint256 private penaltyRate = 50; // 0.5%
   uint256 private constant MAX_PENALTY_RATE = 10000; // 100%
 
+  uint256 private penaltyRate;
   address public multiSigWallet;
-  address public immutable usdu;
-  IUnitasMintingV2 public immutable minting;
-  IERC4626Minimal public immutable staked;
+  address public usdu;
+  IUnitasMintingV2 public minting;
+  IERC4626Minimal public staked;
 
-  constructor(
+  function initialize(
     address adminAddress,
     address multiSigWalletAddress,
     address usduAddress,
     address mintingAddress,
     address stakedAddress
-  ) {
+  ) public initializer {
     if (
       address(mintingAddress) == address(0) || address(stakedAddress) == address(0)
         || address(usduAddress) == address(0) || address(multiSigWalletAddress) == address(0)
@@ -51,14 +59,25 @@ contract UnitasProxy is IUnitasProxy, IERC1271, SingleAdminAccessControl, Reentr
       revert InvalidZeroAddress();
     }
 
+    __AccessControl_init();
+    __Pausable_init();
+
     minting = IUnitasMintingV2(mintingAddress);
     staked = IERC4626Minimal(stakedAddress);
     usdu = usduAddress;
     multiSigWallet = multiSigWalletAddress;
+    penaltyRate = 50; // 0.5%
 
-    // Add AdminChanged event emission when admin role is granted
-    emit AdminChanged(address(0), adminAddress);
+    _setRoleAdmin(MINT_CALLER_ROLE, DEFAULT_ADMIN_ROLE);
+    _setRoleAdmin(REDEEM_CALLER_ROLE, DEFAULT_ADMIN_ROLE);
+    _setRoleAdmin(SIGNER_ROLE, DEFAULT_ADMIN_ROLE);
+    _setRoleAdmin(PAUSER_ROLE, DEFAULT_ADMIN_ROLE);
     _grantRole(DEFAULT_ADMIN_ROLE, adminAddress);
+  }
+
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
   }
 
   function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4) {
@@ -214,4 +233,6 @@ contract UnitasProxy is IUnitasProxy, IERC1271, SingleAdminAccessControl, Reentr
 
     emit RedeemAndWithdraw(benefactor, beneficiary, order, signature);
   }
+
+  uint256[50] private __gap;
 }

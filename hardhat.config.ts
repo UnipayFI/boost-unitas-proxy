@@ -17,11 +17,12 @@ dotenv.config();
 const DEFAULT_COMPILER_SETTINGS = {
     version: "0.8.27",
     settings: {
-        viaIR: true,
         optimizer: {
             enabled: true,
-            runs: 20,
+            runs: 500,
         },
+        viaIR: true,
+        evmVersion: "cancun",
         metadata: {
             bytecodeHash: "none",
         },

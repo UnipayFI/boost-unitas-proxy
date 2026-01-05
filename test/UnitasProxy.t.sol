@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 /* solhint-disable func-name-mixedcase  */
 
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import { Upgrades, Options } from "@openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import "./UnitasMintingV2.utils.sol";
 import "../contracts/StakedUSDuV2.sol";
@@ -18,7 +19,15 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     super.setUp();
 
     staked = new StakedUSDuV2(IERC20(address(usduToken)), owner, owner);
-    proxy = new UnitasProxy(owner, owner, address(usduToken), address(UnitasMintingContract), address(staked));
+    address deployed = Upgrades.deployTransparentProxy(
+      "UnitasProxy.sol",
+      owner,
+      abi.encodeCall(
+        UnitasProxy.initialize,
+        (owner, owner, address(usduToken), address(UnitasMintingContract), address(staked))
+      )
+    );
+    proxy = UnitasProxy(payable(deployed));
 
     vm.startPrank(owner);
     UnitasMintingContract.addWhitelistedBenefactor(address(proxy));
@@ -389,8 +398,15 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
   function test_flashWithdraw_revert_whenNoStakedSupply() public {
     StakedUSDuV2 emptyStaked = new StakedUSDuV2(IERC20(address(usduToken)), owner, owner);
-    UnitasProxy emptyProxy =
-      new UnitasProxy(owner, owner, address(usduToken), address(UnitasMintingContract), address(emptyStaked));
+    address deployed = Upgrades.deployTransparentProxy(
+      "UnitasProxy.sol",
+      owner,
+      abi.encodeCall(
+        UnitasProxy.initialize,
+        (owner, owner, address(usduToken), address(UnitasMintingContract), address(emptyStaked))
+      )
+    );
+    UnitasProxy emptyProxy = UnitasProxy(payable(deployed));
 
     vm.expectRevert(IUnitasProxy.NoStakedSupply.selector);
     emptyProxy.flashWithdraw(1);
@@ -431,6 +447,13 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
   function test_constructor_revert_whenMultiSigWalletZero() public {
     vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
-    new UnitasProxy(owner, address(0), address(usduToken), address(UnitasMintingContract), address(staked));
+    Upgrades.deployTransparentProxy(
+      "UnitasProxy.sol",
+      owner,
+      abi.encodeCall(
+        UnitasProxy.initialize,
+        (owner, address(0), address(usduToken), address(UnitasMintingContract), address(staked))
+      )
+    );
   }
 }
