@@ -11,8 +11,8 @@
 
 ## 泳道图
 
-1. MintAndStake ![MintAndStake](./docs/MintAndStake.png)
+1. MintAndStake ![MintAndStake](./arch/MintAndStake.png)
 
-2. RedeemAndWithdraw ![RedeemAndWithdraw](./docs/RedeemAndWithdraw.png)
+2. RedeemAndWithdraw ![RedeemAndWithdraw](./arch/RedeemAndWithdraw.png)
 
-3. FlashWithdraw ![FlashWithdraw](./docs/FlashWithdraw.png)
+3. FlashWithdraw ![FlashWithdraw](./arch/FlashWithdraw.png)
