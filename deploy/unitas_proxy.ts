@@ -30,12 +30,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const minting = networkConfig.minting;
   const staked = networkConfig.staked;
 
-  const deploymentName = `BoosterUnitasProxy_${hre.network.name}`;
+  const deploymentName = `BoosterUnitasProxy_${hre.network.name}-upgradeable`;
   await deploy(deploymentName, {
     contract: "UnitasProxy",
     from: deployer,
     log: true,
-    args: [admin, multiSigWallet, usdu, minting, staked],
+    proxy: {
+      proxyContract: "OpenZeppelinTransparentProxy",
+      owner: deployer,
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [admin, multiSigWallet, usdu, minting, staked],
+        }
+      }
+    }
   });
 };
 
