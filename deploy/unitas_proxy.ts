@@ -30,7 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const minting = networkConfig.minting;
   const staked = networkConfig.staked;
 
-  const deploymentName = `BoosterUnitasProxy_${hre.network.name}-upgradeable`;
+  const deploymentName = `BoosterUnitasProxy_${hre.network.name}_upgradeable`;
   await deploy(deploymentName, {
     contract: "UnitasProxy",
     from: deployer,
