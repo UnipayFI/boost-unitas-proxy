@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -17,13 +18,7 @@ import "./interfaces/IUSDu.sol";
 import "./interfaces/IStakedUSDu.sol";
 import "./interfaces/IUnitasProxy.sol";
 
-contract UnitasProxy is
-  IUnitasProxy,
-  IERC1271,
-  ReentrancyGuard,
-  AccessControlUpgradeable,
-  PausableUpgradeable
-{
+contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUpgradeable, PausableUpgradeable {
   using SafeERC20 for IERC20;
 
   bytes32 public constant MINT_CALLER_ROLE = keccak256("MINT_CALLER_ROLE");
@@ -81,14 +76,18 @@ contract UnitasProxy is
   }
 
   function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4) {
-    (address signer, ECDSA.RecoverError err, ) = ECDSA.tryRecover(hash, signature);
+    (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hash, signature);
     if (err == ECDSA.RecoverError.NoError && hasRole(SIGNER_ROLE, signer)) {
       return EIP1271_MAGICVALUE;
     }
     return EIP1271_INVALID_SIGNATURE;
   }
 
-  function approveCollateral(address collateralAsset, uint256 allowance) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+  function approveCollateral(address collateralAsset, uint256 allowance)
+    external
+    override
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
     if (collateralAsset == address(0)) {
       revert InvalidZeroAddress();
     }
@@ -142,7 +141,7 @@ contract UnitasProxy is
     if (unvestedAmount > usduBalanceInStaked) {
       revert InvalidStakedState();
     }
-    return susduAmount * (usduBalanceInStaked - unvestedAmount) / susduTotal;
+    return Math.mulDiv(susduAmount, usduBalanceInStaked - unvestedAmount, susduTotal);
   }
 
   function flashWithdraw(uint256 susduAmount) external nonReentrant whenNotPaused {
@@ -150,7 +149,7 @@ contract UnitasProxy is
       revert InvalidZeroAmount();
     }
     uint256 usduAmount = calculateExchangeRate(susduAmount);
-    uint256 penaltyUsduAmount = (usduAmount * penaltyRate) / MAX_PENALTY_RATE;
+    uint256 penaltyUsduAmount = Math.mulDiv(usduAmount, penaltyRate, MAX_PENALTY_RATE);
 
     IERC20(address(staked)).safeTransferFrom(msg.sender, multiSigWallet, susduAmount);
     IERC20(usdu).safeTransferFrom(multiSigWallet, msg.sender, usduAmount - penaltyUsduAmount);
