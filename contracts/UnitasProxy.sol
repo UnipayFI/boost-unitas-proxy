@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-import "./utils/SingleAdminAccessControl.sol";
 import "./interfaces/IERC4626Minimal.sol";
 import "./interfaces/IUnitasMintingV2.sol";
 import "./interfaces/IUSDu.sol";
