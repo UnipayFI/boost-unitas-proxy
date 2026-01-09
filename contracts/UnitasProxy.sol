@@ -189,7 +189,7 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
 
     shares = staked.deposit(amount, beneficiary);
 
-    emit MintAndStake(benefactor, beneficiary, order, route, signature);
+    emit MintAndStake(benefactor, beneficiary, shares, order, route, signature);
   }
 
   function redeemAndWithdraw(

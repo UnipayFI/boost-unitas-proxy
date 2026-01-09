@@ -23,6 +23,7 @@ interface IUnitasProxy {
   event MintAndStake(
     address indexed benefactor,
     address indexed beneficiary,
+    uint256 shares,
     IUnitasMintingV2.Order order,
     IUnitasMintingV2.Route route,
     IUnitasMintingV2.Signature signature
