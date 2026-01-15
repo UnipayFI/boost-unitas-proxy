@@ -69,7 +69,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
   }
 
   function test_mintAndStake_success() public {
-    address stakeReceiver = trader2;
+    address stakeReceiver = benefactor;
 
     IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
       order_type: IUnitasMintingV2.OrderType.MINT,
@@ -122,6 +122,99 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     assertEq(staked.totalAssets(), _usduToMint);
   }
 
+  function test_mintAndStake_revert_whenBeneficiaryZeroAddress() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.MINT,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(1),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    address[] memory targets = new address[](1);
+    targets[0] = custodian1;
+    uint128[] memory ratios = new uint128[](1);
+    ratios[0] = 10_000;
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
+    vm.prank(minter);
+    proxy.mintAndStake(benefactor, address(0), order, route, takerSignature);
+  }
+
+  function test_mintAndStake_revert_whenBenefactorZeroAddress() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.MINT,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(1),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    address[] memory targets = new address[](1);
+    targets[0] = custodian1;
+    uint128[] memory ratios = new uint128[](1);
+    ratios[0] = 10_000;
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
+    vm.prank(minter);
+    proxy.mintAndStake(address(0), beneficiary, order, route, takerSignature);
+  }
+
+  function test_mintAndStake_revert_whenBenefactorNotEqualBeneficiary() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.MINT,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(1),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    address[] memory targets = new address[](1);
+    targets[0] = custodian1;
+    uint128[] memory ratios = new uint128[](1);
+    ratios[0] = 10_000;
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidBenefactorAndBeneficiary.selector);
+    vm.prank(minter);
+    proxy.mintAndStake(benefactor, beneficiary, order, route, takerSignature);
+  }
+
   function test_mintAndStake_revert_whenCallerMissingRole() public {
     IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
       order_type: IUnitasMintingV2.OrderType.MINT,
@@ -150,7 +243,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
     vm.expectRevert();
     vm.prank(trader2);
-    proxy.mintAndStake(benefactor, trader2, order, route, takerSignature);
+    proxy.mintAndStake(benefactor, benefactor, order, route, takerSignature);
   }
 
   function test_mintAndStake_revert_whenInvalidSignatureType() public {
@@ -181,7 +274,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
     vm.expectRevert(IUnitasProxy.InvalidSignatureType.selector);
     vm.prank(minter);
-    proxy.mintAndStake(benefactor, trader2, order, route, takerSignature);
+    proxy.mintAndStake(benefactor, benefactor, order, route, takerSignature);
   }
 
   function test_mintAndStake_revert_whenInvalidBenefactor() public {
@@ -212,7 +305,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
     vm.expectRevert(IUnitasProxy.InvalidBenefactor.selector);
     vm.prank(minter);
-    proxy.mintAndStake(benefactor, trader2, order, route, takerSignature);
+    proxy.mintAndStake(benefactor, benefactor, order, route, takerSignature);
   }
 
   function test_mintAndStake_revert_whenInvalidBeneficiary() public {
@@ -243,7 +336,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
     vm.expectRevert(IUnitasProxy.InvalidBeneficiary.selector);
     vm.prank(minter);
-    proxy.mintAndStake(benefactor, trader2, order, route, takerSignature);
+    proxy.mintAndStake(benefactor, benefactor, order, route, takerSignature);
   }
 
   function test_approveCollateral_and_rescueERC20_onlyAdmin() public {
@@ -267,6 +360,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
   }
 
   function test_redeemAndWithdraw_success() public {
+    address withdrawReceiver = benefactor;
     IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
       order_type: IUnitasMintingV2.OrderType.REDEEM,
       order_id: generateRandomOrderId(),
@@ -296,15 +390,90 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     );
 
     uint256 mintingCollateralBefore = stETHToken.balanceOf(address(UnitasMintingContract));
-    uint256 beneficiaryCollateralBefore = stETHToken.balanceOf(beneficiary);
+    uint256 beneficiaryCollateralBefore = stETHToken.balanceOf(withdrawReceiver);
 
     vm.prank(redeemer);
-    proxy.redeemAndWithdraw(benefactor, beneficiary, order, takerSignature);
+    proxy.redeemAndWithdraw(benefactor, withdrawReceiver, order, takerSignature);
 
     assertEq(usduToken.balanceOf(benefactor), 0);
     assertEq(usduToken.balanceOf(address(proxy)), 0);
     assertEq(stETHToken.balanceOf(address(UnitasMintingContract)), mintingCollateralBefore - _stETHToDeposit);
-    assertEq(stETHToken.balanceOf(beneficiary), beneficiaryCollateralBefore + _stETHToDeposit);
+    assertEq(stETHToken.balanceOf(withdrawReceiver), beneficiaryCollateralBefore + _stETHToDeposit);
+  }
+
+  function test_redeemAndWithdraw_revert_whenBeneficiaryZeroAddress() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.REDEEM,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(11),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
+    vm.prank(redeemer);
+    proxy.redeemAndWithdraw(benefactor, address(0), order, takerSignature);
+  }
+
+  function test_redeemAndWithdraw_revert_whenBenefactorZeroAddress() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.REDEEM,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(11),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidZeroAddress.selector);
+    vm.prank(redeemer);
+    proxy.redeemAndWithdraw(address(0), beneficiary, order, takerSignature);
+  }
+
+  function test_redeemAndWithdraw_revert_whenBenefactorNotEqualBeneficiary() public {
+    IUnitasMintingV2.Order memory order = IUnitasMintingV2.Order({
+      order_type: IUnitasMintingV2.OrderType.REDEEM,
+      order_id: generateRandomOrderId(),
+      expiry: uint128(block.timestamp + 10 minutes),
+      nonce: uint120(11),
+      benefactor: address(proxy),
+      beneficiary: address(proxy),
+      collateral_asset: address(stETHToken),
+      collateral_amount: _stETHToDeposit,
+      usdu_amount: _usduToMint
+    });
+
+    bytes32 digest = UnitasMintingContract.hashOrder(order);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
+
+    vm.expectRevert(IUnitasProxy.InvalidBenefactorAndBeneficiary.selector);
+    vm.prank(redeemer);
+    proxy.redeemAndWithdraw(benefactor, beneficiary, order, takerSignature);
   }
 
   function test_redeemAndWithdraw_revert_whenCallerMissingRole() public {
@@ -329,7 +498,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
     vm.expectRevert();
     vm.prank(trader2);
-    proxy.redeemAndWithdraw(benefactor, beneficiary, order, takerSignature);
+    proxy.redeemAndWithdraw(benefactor, benefactor, order, takerSignature);
   }
 
   function test_flashWithdraw_success() public {
