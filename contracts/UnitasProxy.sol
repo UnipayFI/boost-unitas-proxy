@@ -44,8 +44,10 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
     address stakedAddress
   ) public initializer {
     if (
-      address(mintingAddress) == address(0) || address(stakedAddress) == address(0)
-        || address(usduAddress) == address(0) || address(multiSigWalletAddress) == address(0)
+      address(mintingAddress) == address(0) ||
+      address(stakedAddress) == address(0) ||
+      address(usduAddress) == address(0) ||
+      address(multiSigWalletAddress) == address(0)
     ) {
       revert InvalidZeroAddress();
     }
@@ -75,18 +77,17 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
   }
 
   function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4) {
-    (address signer, ECDSA.RecoverError err,) = ECDSA.tryRecover(hash, signature);
+    (address signer, ECDSA.RecoverError err, ) = ECDSA.tryRecover(hash, signature);
     if (err == ECDSA.RecoverError.NoError && hasRole(SIGNER_ROLE, signer)) {
       return EIP1271_MAGICVALUE;
     }
     return EIP1271_INVALID_SIGNATURE;
   }
 
-  function approveCollateral(address collateralAsset, uint256 allowance)
-    external
-    override
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
+  function approveCollateral(
+    address collateralAsset,
+    uint256 allowance
+  ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
     if (collateralAsset == address(0)) {
       revert InvalidZeroAddress();
     }
@@ -130,7 +131,7 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
     _unpause();
   }
 
-  function calculateExchangeRate(uint256 susduAmount) internal view returns (uint256) {
+  function calculateExchangeRate(uint256 susduAmount) public view returns (uint256) {
     uint256 usduBalanceInStaked = IERC20(usdu).balanceOf(address(staked));
     uint256 unvestedAmount = IStakedUSDu(address(staked)).getUnvestedAmount();
     uint256 susduTotal = staked.totalSupply();
@@ -166,6 +167,13 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
     if (beneficiary == address(0)) {
       revert InvalidZeroAddress();
     }
+    if (benefactor == address(0)) {
+      revert InvalidZeroAddress();
+    }
+    if (benefactor != beneficiary) {
+      revert InvalidBenefactorAndBeneficiary();
+    }
+
     if (signature.signature_type != IUnitasMintingV2.SignatureType.EIP1271) {
       revert InvalidSignatureType();
     }
@@ -203,6 +211,9 @@ contract UnitasProxy is IUnitasProxy, IERC1271, ReentrancyGuard, AccessControlUp
     }
     if (benefactor == address(0)) {
       revert InvalidZeroAddress();
+    }
+    if (benefactor != beneficiary) {
+      revert InvalidBenefactorAndBeneficiary();
     }
     if (signature.signature_type != IUnitasMintingV2.SignatureType.EIP1271) {
       revert InvalidSignatureType();

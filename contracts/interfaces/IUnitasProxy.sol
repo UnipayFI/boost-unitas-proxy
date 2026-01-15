@@ -13,6 +13,7 @@ interface IUnitasProxy {
   error InvalidBeneficiary();
   error InvalidSignatureType();
   error InvalidPenaltyRate();
+  error InvalidBenefactorAndBeneficiary();
 
   // Events
   event AdminChanged(address indexed previousAdmin, address indexed newAdmin);

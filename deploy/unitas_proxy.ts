@@ -16,7 +16,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   const admin = networkConfig.admin === ZeroAddress ? deployer : networkConfig.admin;
-  const multiSigWallet = networkConfig.multiSigWallet === ZeroAddress ? deployer : networkConfig.multiSigWallet;
+  const multiSigWallet =
+    networkConfig.multiSigWallet === ZeroAddress ? deployer : networkConfig.multiSigWallet;
   if (networkConfig.usdu === ZeroAddress) {
     throw new Error(`USDu address not set for network ${hre.network.name}`);
   }
@@ -42,9 +43,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         init: {
           methodName: "initialize",
           args: [admin, multiSigWallet, usdu, minting, staked],
-        }
-      }
-    }
+        },
+      },
+    },
   });
 };
 

@@ -47,8 +47,11 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
   function test_isValidSignature_validSigner_returnsMagicValue() public view {
     bytes32 hash = keccak256("UnitasProxyTest");
-    IUnitasMintingV2.Signature memory signature =
-      signOrder(trader1PrivateKey, hash, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory signature = signOrder(
+      trader1PrivateKey,
+      hash,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     bytes4 magic = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     assertEq(proxy.isValidSignature(hash, signature.signature_bytes), magic);
@@ -56,8 +59,11 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
 
   function test_isValidSignature_invalidSigner_returnsInvalid() public view {
     bytes32 hash = keccak256("UnitasProxyTest");
-    IUnitasMintingV2.Signature memory signature =
-      signOrder(trader2PrivateKey, hash, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory signature = signOrder(
+      trader2PrivateKey,
+      hash,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     assertEq(proxy.isValidSignature(hash, signature.signature_bytes), bytes4(0xffffffff));
   }
@@ -81,7 +87,7 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     targets[0] = custodian1;
     uint128[] memory ratios = new uint128[](1);
     ratios[0] = 10_000;
-    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({addresses: targets, ratios: ratios});
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
 
     vm.prank(benefactor);
     stETHToken.approve(address(proxy), _stETHToDeposit);
@@ -90,14 +96,19 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     proxy.approveCollateral(address(stETHToken), _stETHToDeposit);
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     vm.expectCall(
-      address(stETHToken), abi.encodeCall(IERC20.transferFrom, (benefactor, address(proxy), uint256(_stETHToDeposit)))
+      address(stETHToken),
+      abi.encodeCall(IERC20.transferFrom, (benefactor, address(proxy), uint256(_stETHToDeposit)))
     );
     vm.expectCall(
-      address(stETHToken), abi.encodeCall(IERC20.transferFrom, (address(proxy), custodian1, uint256(_stETHToDeposit)))
+      address(stETHToken),
+      abi.encodeCall(IERC20.transferFrom, (address(proxy), custodian1, uint256(_stETHToDeposit)))
     );
     vm.expectCall(address(usduToken), abi.encodeCall(IERC20.approve, (address(staked), uint256(0))));
     vm.expectCall(address(usduToken), abi.encodeCall(IERC20.approve, (address(staked), uint256(_usduToMint))));
@@ -128,11 +139,14 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     targets[0] = custodian1;
     uint128[] memory ratios = new uint128[](1);
     ratios[0] = 10_000;
-    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({addresses: targets, ratios: ratios});
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     vm.expectRevert();
     vm.prank(trader2);
@@ -156,11 +170,14 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     targets[0] = custodian1;
     uint128[] memory ratios = new uint128[](1);
     ratios[0] = 10_000;
-    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({addresses: targets, ratios: ratios});
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP712);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP712
+    );
 
     vm.expectRevert(IUnitasProxy.InvalidSignatureType.selector);
     vm.prank(minter);
@@ -184,11 +201,14 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     targets[0] = custodian1;
     uint128[] memory ratios = new uint128[](1);
     ratios[0] = 10_000;
-    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({addresses: targets, ratios: ratios});
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     vm.expectRevert(IUnitasProxy.InvalidBenefactor.selector);
     vm.prank(minter);
@@ -212,11 +232,14 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     targets[0] = custodian1;
     uint128[] memory ratios = new uint128[](1);
     ratios[0] = 10_000;
-    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({addresses: targets, ratios: ratios});
+    IUnitasMintingV2.Route memory route = IUnitasMintingV2.Route({ addresses: targets, ratios: ratios });
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     vm.expectRevert(IUnitasProxy.InvalidBeneficiary.selector);
     vm.prank(minter);
@@ -266,8 +289,11 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     usduToken.approve(address(proxy), _usduToMint);
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     uint256 mintingCollateralBefore = stETHToken.balanceOf(address(UnitasMintingContract));
     uint256 beneficiaryCollateralBefore = stETHToken.balanceOf(beneficiary);
@@ -295,8 +321,11 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     });
 
     bytes32 digest = UnitasMintingContract.hashOrder(order);
-    IUnitasMintingV2.Signature memory takerSignature =
-      signOrder(trader1PrivateKey, digest, IUnitasMintingV2.SignatureType.EIP1271);
+    IUnitasMintingV2.Signature memory takerSignature = signOrder(
+      trader1PrivateKey,
+      digest,
+      IUnitasMintingV2.SignatureType.EIP1271
+    );
 
     vm.expectRevert();
     vm.prank(trader2);

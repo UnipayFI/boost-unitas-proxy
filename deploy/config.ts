@@ -22,5 +22,5 @@ export const boosterUnitasProxyConfig: Record<string, BoosterUnitasProxyConfig> 
     usdu: getAddress("0xeA953eA6634d55dAC6697C436B1e81A679Db5882"),
     minting: getAddress("0xbB984CE670100AA855f6152f88b26EE57f4EA82A"),
     staked: getAddress("0x385C279445581a186a4182a5503094eBb652EC71"),
-  }
+  },
 };
