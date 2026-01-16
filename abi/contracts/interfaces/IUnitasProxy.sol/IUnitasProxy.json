@@ -6,6 +6,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidBenefactorAndBeneficiary",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidBeneficiary",
     "type": "error"
   },
