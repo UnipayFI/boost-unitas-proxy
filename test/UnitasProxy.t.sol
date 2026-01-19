@@ -4,6 +4,9 @@ pragma solidity ^0.8.20;
 /* solhint-disable func-name-mixedcase  */
 
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import { Upgrades, Options } from "@openzeppelin-foundry-upgrades/Upgrades.sol";
 
@@ -11,6 +14,52 @@ import "./UnitasMintingV2.utils.sol";
 import "../contracts/StakedUSDuV2.sol";
 import "../contracts/UnitasProxy.sol";
 import "../contracts/interfaces/IUnitasProxy.sol";
+
+contract ReentrantUSDu is ERC20 {
+  UnitasProxy public proxy;
+  uint256 public reenterAmount;
+  bool public shouldReenter;
+
+  constructor(address owner) ERC20("Reentrant USDu", "rUSDU") {
+    _mint(owner, 1_000_000 ether);
+  }
+
+  function decimals() public pure override returns (uint8) {
+    return 18;
+  }
+
+  function setReenter(UnitasProxy target, uint256 amount) external {
+    proxy = target;
+    reenterAmount = amount;
+    shouldReenter = true;
+  }
+
+  function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+    if (shouldReenter) {
+      shouldReenter = false;
+      proxy.flashWithdraw(reenterAmount);
+    }
+    return super.transferFrom(from, to, amount);
+  }
+}
+
+contract MockStakedUSDu is ERC4626 {
+  uint256 private unvested;
+
+  constructor(IERC20 asset) ERC20("Mock Staked USDu", "mSUSDU") ERC4626(asset) {}
+
+  function mintShares(address to, uint256 amount) external {
+    _mint(to, amount);
+  }
+
+  function setUnvested(uint256 amount) external {
+    unvested = amount;
+  }
+
+  function getUnvestedAmount() external view returns (uint256) {
+    return unvested;
+  }
+}
 
 contract UnitasProxyTest is UnitasMintingV2Utils {
   StakedUSDuV2 internal staked;
@@ -651,6 +700,42 @@ contract UnitasProxyTest is UnitasMintingV2Utils {
     vm.expectRevert(IUnitasProxy.InvalidStakedState.selector);
     vm.prank(trader2);
     proxy.flashWithdraw(susduAmount);
+  }
+
+  function test_flashWithdraw_revert_whenReentrantCall() public {
+    ReentrantUSDu reentrantUsdu = new ReentrantUSDu(owner);
+    MockStakedUSDu mockStaked = new MockStakedUSDu(IERC20(address(reentrantUsdu)));
+    Options memory opts;
+    opts.unsafeSkipAllChecks = true;
+
+    address deployed = Upgrades.deployTransparentProxy(
+      "UnitasProxy.sol",
+      owner,
+      abi.encodeCall(
+        UnitasProxy.initialize,
+        (owner, owner, address(reentrantUsdu), address(UnitasMintingContract), address(mockStaked))
+      ),
+      opts
+    );
+    UnitasProxy reentrantProxy = UnitasProxy(payable(deployed));
+
+    uint256 susduAmount = 1 ether;
+    mockStaked.mintShares(trader2, susduAmount);
+    mockStaked.setUnvested(0);
+
+    vm.prank(owner);
+    reentrantUsdu.transfer(address(mockStaked), 10 ether);
+    vm.prank(owner);
+    reentrantUsdu.approve(address(reentrantProxy), 10 ether);
+
+    vm.prank(trader2);
+    mockStaked.approve(address(reentrantProxy), susduAmount);
+
+    reentrantUsdu.setReenter(reentrantProxy, susduAmount);
+
+    vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+    vm.prank(trader2);
+    reentrantProxy.flashWithdraw(susduAmount);
   }
 
   function test_constructor_revert_whenMultiSigWalletZero() public {
